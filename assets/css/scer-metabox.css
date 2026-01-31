@@ -1,0 +1,14 @@
+.scer-field-group {
+    margin-bottom: 12px;
+}
+
+#scer-redirect-field,
+#scer-replace-field,
+#scer-status-field {
+    display: none;
+}
+
+#scer-redirect-field input,
+#scer-replace-field textarea {
+    width: 100%;
+}
