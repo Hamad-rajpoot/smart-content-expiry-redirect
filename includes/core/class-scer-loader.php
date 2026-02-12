@@ -5,21 +5,55 @@ class Loader {
 
     public function init() {
 
-        // Admin
+        /**
+         * -------------------------------------------------
+         * Register Expiry Action Handler (Global)
+         * -------------------------------------------------
+         */
+        add_action(
+            'scer_do_expiry_action',
+            [ '\SCER\Core\Actions', 'run' ]
+        );
+
+        /**
+         * -------------------------------------------------
+         * Initialize Cron (MUST be global)
+         * -------------------------------------------------
+         */
+        new \SCER\Core\Cron();
+
+        /**
+         * -------------------------------------------------
+         * Admin Initialization
+         * -------------------------------------------------
+         */
         if ( is_admin() ) {
             $this->init_admin();
         }
 
-        // Frontend (future)
+        /**
+         * -------------------------------------------------
+         * Frontend Initialization
+         * -------------------------------------------------
+         */
         $this->init_frontend();
     }
 
+    /**
+     * Admin Specific Features
+     */
     private function init_admin() {
-        // SCER_Admin constructor will enqueue assets & initialize MetaBox
+
         new \SCER\Admin\SCER_Admin();
+
     }
 
-  private function init_frontend() {
-    new \SCER\Frontend\Frontend();
-}
+    /**
+     * Frontend Specific Features
+     */
+    private function init_frontend() {
+
+        new \SCER\Frontend\Frontend();
+
+    }
 }

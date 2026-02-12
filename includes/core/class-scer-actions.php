@@ -1,46 +1,89 @@
 <?php
 namespace SCER\Core;
 
+defined( 'ABSPATH' ) || exit;
+
 class Actions {
 
-    public function __construct() {
-        add_action( 'scer_do_expiry_action', [ $this, 'process' ] );
-    }
+    /**
+     * Handle post expiry actions
+     *
+     * @param int $post_id
+     */
+    public static function run( $post_id ) {
 
-    public function process( $post_id ) {
+        $action = get_post_meta( $post_id, '_scer_action', true );
+        if ( ! $action ) {
+            return;
+        }
 
-        $action   = get_post_meta( $post_id, '_scer_action', true );
+        /*
+         * Prevent repeat execution if already completed,
+         * except for status-change actions (draft/private)
+         */
+        $completed = get_post_meta( $post_id, '_scer_completed', true );
+        if ( $completed && ! in_array( $action, [ 'draft', 'status_change', 'private' ], true ) ) {
+            return;
+        }
 
         switch ( $action ) {
 
-            case 'redirect':
-                $url = get_post_meta( $post_id, '_scer_redirect', true );
-                if ( $url ) {
-                    update_post_meta( $post_id, '_scer_redirect_active', $url );
-                }
-                break;
-
-            case 'replace':
-                $content = get_post_meta( $post_id, '_scer_replace', true );
-                if ( $content ) {
-                    wp_update_post([
-                        'ID'           => $post_id,
-                        'post_content' => $content
-                    ]);
-                }
-                break;
-
+            case 'draft':
             case 'status_change':
-                $status = get_post_meta( $post_id, '_scer_status', true );
-                if ( $status ) {
-                    wp_update_post([
-                        'ID'     => $post_id,
-                        'post_status' => $status
-                    ]);
-                }
+                self::change_status( $post_id, 'draft' );
+                break;
+
+            case 'private':
+                self::change_status( $post_id, 'private' );
+                break;
+
+            case 'trash':
+                self::trash_post( $post_id );
+                break;
+
+            case 'redirect':
+                self::redirect_post( $post_id );
+                break;
+
+            default:
+                // Unknown action, do nothing
                 break;
         }
 
-        update_post_meta( $post_id, '_scer_completed', 1 );
+        // Mark completed for non-status actions
+        if ( ! in_array( $action, [ 'draft', 'status_change', 'private' ], true ) ) {
+            update_post_meta( $post_id, '_scer_completed', 1 );
+        }
+    }
+
+    /**
+     * Change post status safely
+     *
+     * @param int    $post_id
+     * @param string $status
+     */
+    private static function change_status( $post_id, $status ) {
+        wp_update_post( [
+            'ID'          => $post_id,
+            'post_status' => $status,
+        ] );
+    }
+
+    /**
+     * Move post to trash
+     *
+     * @param int $post_id
+     */
+    private static function trash_post( $post_id ) {
+        wp_trash_post( $post_id );
+    }
+
+    /**
+     * Enable redirect action for frontend
+     *
+     * @param int $post_id
+     */
+    private static function redirect_post( $post_id ) {
+        update_post_meta( $post_id, '_scer_redirect_active', 1 );
     }
 }
